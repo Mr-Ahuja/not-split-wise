@@ -87,7 +87,41 @@ function useAuthCtx() {
 
 function Header() {
   const { user, approved } = useAuthCtx();
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [canInstall, setCanInstall] = useState(false);
   const [err, setErr] = useState(null);
+  const [notifStatus, setNotifStatus] = useState(Notification?.permission || 'default');
+
+  useEffect(() => {
+    function onBip(e) {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setCanInstall(true);
+    }
+    window.addEventListener('beforeinstallprompt', onBip);
+    window.addEventListener('appinstalled', () => setCanInstall(false));
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onBip);
+    };
+  }, []);
+
+  async function installApp() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const choice = await deferredPrompt.userChoice;
+    if (choice.outcome !== 'accepted') {
+      // no-op
+    }
+    setDeferredPrompt(null);
+    setCanInstall(false);
+  }
+
+  async function enableNotifications() {
+    try {
+      const res = await Notification.requestPermission();
+      setNotifStatus(res);
+    } catch {}
+  }
   async function doSignIn() {
     try { setErr(null); await signInWithGoogle(); } catch (e) { setErr(parseAuthError(e)); }
   }
@@ -105,6 +139,8 @@ function Header() {
               {isAdmin(user) && <Link className="btn" to="/admin">Admin</Link>}
             </>
           )}
+          {canInstall && <button className="btn" onClick={installApp}>Install App</button>}
+          {notifStatus !== 'granted' && <button className="btn" onClick={enableNotifications}>Enable Notifications</button>}
           {user ? (
             <button className="btn" onClick={() => signOut()}>Sign out</button>
           ) : (
@@ -278,6 +314,7 @@ function GroupPage() {
   const [customSplit, setCustomSplit] = useState({});
   const [profiles, setProfiles] = useState({});
   const [err, setErr] = useState(null);
+  const [lastSeen, setLastSeen] = useState(0);
 
   useEffect(() => {
     const gRef = ref(db, `groups/${groupId}`);
@@ -290,6 +327,23 @@ function GroupPage() {
           const p = await get(ref(db, `userProfiles/${uid}`));
           if (p.exists()) setProfiles(prev => ({ ...prev, [uid]: p.val() }));
         });
+      }
+      // Notifications for new expenses affecting current user
+      if (val?.expenses && Notification?.permission === 'granted' && user) {
+        let maxTs = lastSeen;
+        Object.entries(val.expenses).forEach(([id, ex]) => {
+          const ts = Number(ex.createdAt || 0);
+          if (ts > lastSeen && ex.split && ex.split[user.uid] > 0 && ex.paidBy !== user.uid) {
+            const body = `${ex.title} — ₹${ex.amount} (you owe ₹${ex.split[user.uid]})`;
+            if (navigator.serviceWorker?.ready) {
+              navigator.serviceWorker.ready.then(reg => reg.showNotification('New expense', { body }));
+            } else {
+              try { new Notification('New expense', { body }); } catch {}
+            }
+          }
+          if (ts > maxTs) maxTs = ts;
+        });
+        if (maxTs !== lastSeen) setLastSeen(maxTs);
       }
     }, (e) => setErr('Failed to load group (DB connection).'));
     return () => unsub();
