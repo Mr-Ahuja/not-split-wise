@@ -28,14 +28,7 @@ jobs:
       env:
         FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
       run: |
-        node -e "const fs=require('fs');const p='firebase.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.hosting=j.hosting||{};j.hosting.site=process.env.FIREBASE_PROJECT_ID;j.hosting.target='default';fs.writeFileSync(p,JSON.stringify(j));console.log('hosting.site=',j.hosting.site,'target=',j.hosting.target)"
-    - name: Apply hosting target mapping
-      working-directory: apps/not-splitwise
-      env:
-        FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-      run: |
-        firebase target:apply hosting default "$FIREBASE_PROJECT_ID" --project "$FIREBASE_PROJECT_ID"
-        echo "---- firebase.json ----" && cat firebase.json
+        node -e "const fs=require('fs');const p='firebase.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.hosting=j.hosting||{};j.hosting.site=process.env.FIREBASE_PROJECT_ID;delete j.hosting.target;fs.writeFileSync(p,JSON.stringify(j));console.log('hosting.site=',j.hosting.site)"
     - name: Deploy to Firebase Hosting
       working-directory: apps/not-splitwise
       env:
