@@ -23,9 +23,15 @@ jobs:
       run: pnpm build
     - name: Install Firebase CLI
       run: npm i -g firebase-tools
+    - name: Set hosting site in firebase.json
+      working-directory: apps/not-splitwise
+      env:
+        FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      run: |
+        node -e "const fs=require('fs');const p='firebase.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.hosting=j.hosting||{};j.hosting.site=process.env.FIREBASE_PROJECT_ID;fs.writeFileSync(p,JSON.stringify(j));console.log('hosting.site=',j.hosting.site)"
     - name: Deploy to Firebase Hosting
       working-directory: apps/not-splitwise
       env:
         FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-      run: firebase deploy --only hosting:$FIREBASE_PROJECT_ID --project "$FIREBASE_PROJECT_ID" --token "$FIREBASE_TOKEN"
+      run: firebase deploy --only hosting --project "$FIREBASE_PROJECT_ID" --token "$FIREBASE_TOKEN"
