@@ -9,16 +9,23 @@ fs.mkdirSync(outDir, { recursive: true });
 
 const svg = fs.readFileSync(logoSvgPath);
 
-const targets = [
-  { size: 192, name: 'icon-192.png' },
-  { size: 512, name: 'icon-512.png' },
-  { size: 512, name: 'icon-512-maskable.png', background: '#0b0f14' }
-];
-
-for (const t of targets) {
-  const dest = path.join(outDir, t.name);
-  const s = sharp(svg).resize(t.size, t.size, { fit: 'contain', background: t.background ?? { r:0, g:0, b:0, alpha:0 } });
-  await s.png().toFile(dest);
+async function makeIcon(size, name, { scale = 0.72, background = '#0b0f14' } = {}) {
+  const dest = path.join(outDir, name);
+  const bg = sharp({
+    create: { width: size, height: size, channels: 4, background }
+  });
+  const logoBuf = await sharp(svg)
+    .resize(Math.round(size * scale), Math.round(size * scale), { fit: 'contain' })
+    .png()
+    .toBuffer();
+  await bg
+    .composite([{ input: logoBuf, gravity: 'center' }])
+    .png()
+    .toFile(dest);
   console.log('wrote', dest);
 }
 
+await makeIcon(192, 'icon-192.png');
+await makeIcon(512, 'icon-512.png');
+await makeIcon(512, 'icon-512-maskable.png', { scale: 0.8 });
+await makeIcon(180, 'apple-touch-icon-180.png');
