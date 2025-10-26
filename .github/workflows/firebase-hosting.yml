@@ -24,14 +24,9 @@ jobs:
     - name: Install Firebase CLI
       run: npm i -g firebase-tools
     - name: Configure Service Account (optional)
-      run: |
-        if [ -n "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}" ]; then
-          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}" > $RUNNER_TEMP/sa.json
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> $GITHUB_ENV
-          echo "Wrote service account file and set GOOGLE_APPLICATION_CREDENTIALS"
-        else
-          echo "No FIREBASE_SERVICE_ACCOUNT_JSON secret; will use token auth"
-        fi
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
     - name: Set hosting site in firebase.json
       working-directory: apps/not-splitwise
       env:
@@ -44,6 +39,7 @@ jobs:
         FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
         GOOGLE_CLOUD_PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
+        FIREBASE_DEBUG: "true"
       run: |
         if [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
           echo "Using service account for auth"
