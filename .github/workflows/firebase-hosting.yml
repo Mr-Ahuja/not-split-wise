@@ -23,33 +23,16 @@ jobs:
       run: pnpm build
     - name: Install Firebase CLI
       run: npm i -g firebase-tools
-    - name: Configure Service Account (optional)
-      run: |
-        if [ -n "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}" ]; then
-          printf "%s" "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}" > $RUNNER_TEMP/sa.json
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> $GITHUB_ENV
-          echo "Wrote service account file and set GOOGLE_APPLICATION_CREDENTIALS"
-        else
-          echo "No FIREBASE_SERVICE_ACCOUNT_JSON secret; will use token auth"
-        fi
     - name: Set hosting site in firebase.json
       working-directory: apps/not-splitwise
       env:
         FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
       run: |
         node -e "const fs=require('fs');const p='firebase.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.hosting=j.hosting||{};j.hosting.site=process.env.FIREBASE_PROJECT_ID;delete j.hosting.target;fs.writeFileSync(p,JSON.stringify(j));console.log('hosting.site=',j.hosting.site)"
-    - name: Deploy to Firebase Hosting
-      working-directory: apps/not-splitwise
-      env:
-        FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-        FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-        GOOGLE_CLOUD_PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
-        FIREBASE_DEBUG: "true"
-      run: |
-        if [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
-          echo "Using service account for auth"
-          firebase deploy --only hosting --project "$FIREBASE_PROJECT_ID"
-        else
-          echo "Using CI token for auth"
-          firebase deploy --only hosting --project "$FIREBASE_PROJECT_ID" --token "$FIREBASE_TOKEN"
-        fi
+    - name: Deploy to Firebase Hosting (Action)
+      uses: FirebaseExtended/action-hosting-deploy@v0
+      with:
+        repoToken: ${{ secrets.GITHUB_TOKEN }}
+        firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+        channelId: live
