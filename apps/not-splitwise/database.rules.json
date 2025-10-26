@@ -1,1 +1,59 @@
-{"rules":{".read":false,".write":false,"allowedUsers":{"$email":{".read":"auth != null && root.child(\"allowedUsers\").child($email).val() === true",".write":"auth != null && auth.token.email === \"preetamahuja9211@gmail.com\""}},"admin":{"requests":{"$requestId":{".read":"auth != null && auth.token.email === \"preetamahuja9211@gmail.com\"",".write":"auth != null"}},"invites":{"$token":{".read":"auth != null && auth.token.email === \"preetamahuja9211@gmail.com\"",".write":"auth != null && auth.token.email === \"preetamahuja9211@gmail.com\""}}},"groups":{"$groupId":{".read":"auth != null && root.child(\"groups\").child($groupId).child(\"members\").child(auth.uid).val() === true",".write":"auth != null && root.child(\"groups\").child($groupId).child(\"members\").child(auth.uid).val() === true"}},"userGroupLinks":{"$uid":{".read":"auth != null && auth.uid === $uid",".write":"auth != null && auth.uid === $uid"}}}}
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "allowedUsers": {
+      ".read": "auth != null",
+      "$emailKey": {
+        ".write": "auth != null && auth.token.email == 'preetamahuja9211@gmail.com'"
+      }
+    },
+
+    "admin": {
+      ".read": "auth != null && auth.token.email == 'preetamahuja9211@gmail.com'",
+      ".write": "auth != null && auth.token.email == 'preetamahuja9211@gmail.com'",
+
+      "requests": {
+        "$uid": {
+          ".read": "auth != null && auth.token.email == 'preetamahuja9211@gmail.com'",
+          ".write": "auth != null && (auth.uid == $uid || auth.token.email == 'preetamahuja9211@gmail.com')"
+        }
+      },
+
+      "userInviteTokens": {
+        ".read": "auth != null && auth.token.email == 'preetamahuja9211@gmail.com'",
+        ".write": "auth != null && auth.token.email == 'preetamahuja9211@gmail.com'"
+      }
+    },
+
+    "userProfiles": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+
+    "userGroupLinks": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        "$groupId": {
+          ".write": "auth != null && auth.uid == $uid"
+        }
+      }
+    },
+
+    "groups": {
+      "$groupId": {
+        ".read": "auth != null && data.child('members').child(auth.uid).val() == true",
+        ".write": "auth != null && ( (data.exists() && data.child('members').child(auth.uid).val() == true) || (!data.exists() && newData.child('members').child(auth.uid).val() == true) )",
+
+        "members": {
+          "$uid": {
+            ".write": "auth != null && auth.uid == $uid"
+          }
+        }
+      }
+    }
+  }
+}

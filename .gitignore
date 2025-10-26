@@ -1,1 +1,18 @@
-# Root ignore\r\n.temp/\r\nnode_modules/\r\n**/node_modules/\r\n**/dist/\r\n.DS_Store\r\nThumbs.db\r\n
+# Repo ignores
+.temp/
+node_modules/
+dist/
+.DS_Store
+*.log
+
+# Env files
+.env
+.env.*
+apps/**/.env.local
+apps/**/.env
+apps/**/.firebase/
+
+# IDE
+.vscode/
+.idea/
+
