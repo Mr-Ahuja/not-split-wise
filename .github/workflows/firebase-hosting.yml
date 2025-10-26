@@ -23,6 +23,11 @@ jobs:
       run: pnpm build
     - name: Install Firebase CLI
       run: npm i -g firebase-tools
+    - name: Configure Service Account (optional)
+      if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON != '' }}
+      run: |
+        echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}" > $RUNNER_TEMP/sa.json
+        echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> $GITHUB_ENV
     - name: Set hosting site in firebase.json
       working-directory: apps/not-splitwise
       env:
@@ -34,4 +39,11 @@ jobs:
       env:
         FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-      run: firebase deploy --only hosting --project "$FIREBASE_PROJECT_ID" --token "$FIREBASE_TOKEN"
+      run: |
+        if [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+          echo "Using service account for auth"
+          firebase deploy --only hosting --project "$FIREBASE_PROJECT_ID"
+        else
+          echo "Using CI token for auth"
+          firebase deploy --only hosting --project "$FIREBASE_PROJECT_ID" --token "$FIREBASE_TOKEN"
+        fi
