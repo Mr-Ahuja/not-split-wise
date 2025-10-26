@@ -1,0 +1,32 @@
+name: Deploy to Firebase Hosting
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+        cache: "pnpm"
+    - name: Enable Corepack
+      run: corepack enable && corepack prepare pnpm@latest --activate
+    - name: Install dependencies
+      working-directory: apps/not-splitwise
+      run: pnpm install --frozen-lockfile || pnpm install
+    - name: Build
+      working-directory: apps/not-splitwise
+      run: pnpm build
+    - name: Install Firebase CLI
+      run: npm i -g firebase-tools
+    - name: Deploy to Firebase Hosting
+      working-directory: apps/not-splitwise
+      env:
+        FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      run: firebase deploy --only hosting --project "$FIREBASE_PROJECT_ID" --token "$FIREBASE_TOKEN"

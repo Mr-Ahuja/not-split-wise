@@ -1,0 +1,31 @@
+{
+  "template": "spa.base",
+  "version": "1.0.0",
+  "requires": {
+    "app.framework": { "enum": ["react", "vanilla", "svelte"] },
+    "build.strategy": {
+      "enum": ["react_vite", "react_cra"],
+      "bindings": {
+        "react_vite": { "operator": "op.build.vite", "artifact.patterns": ["dist/**"] },
+        "react_cra":  { "operator": "op.build.cra",  "artifact.patterns": ["build/**"] }
+      }
+    },
+    "deploy.strategy": {
+      "enum": ["github_actions_pages", "firebase_hosting", "vercel"],
+      "bindings": {
+        "github_actions_pages": { "operator": "op.deploy.gha.pages" },
+        "firebase_hosting":    { "operator": "op.deploy.firebase.hosting" },
+        "vercel":              { "operator": "op.deploy.vercel" }
+      }
+    },
+    "ui.background": { "enum": ["starry_night", "solid", "gradient"] },
+    "runtime.commands": { "type": "object" },
+    "artifact.patterns": { "type": "array" }
+  },
+  "defaults": { "artifact.patterns": ["dist/**"] },
+  "notes": [
+    "SPA yields a single HTML entry point + static assets.",
+    "Build output should match artifact.patterns and be cache-friendly."
+  ]
+}
+

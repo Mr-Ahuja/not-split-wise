@@ -1,0 +1,1 @@
+# Root ignore\r\n.temp/\r\nnode_modules/\r\n**/node_modules/\r\n**/dist/\r\n.DS_Store\r\nThumbs.db\r\n

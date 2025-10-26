@@ -1,0 +1,41 @@
+{
+  "implements": "templates/spa.the-choosen-one.firebase.cft.json#1.0.0",
+  "name": "not-splitwise",
+  "version": "1.0.0",
+  "app.framework": "react",
+  "build.strategy": "react_vite",
+  "deploy.strategy": "firebase_hosting",
+  "ui.theme": "the_choosen_one",
+  "ui.buttons.layout": "primary_secondary_inline",
+  "ui.footer.attribution": "project_by_preetam",
+  "ui.buttons.style": "mellange",
+  "ui.responsive.policy": "mobile_first",
+  "ui.buttons.icons": "enabled",
+  "ui.logo.size": { "width": 64, "height": 64 },
+  "ui.assets.scripts": [],
+  "ui.assets.styles": ["apps/not-splitwise/src/styles/theme.css"],
+  "runtime.commands": {
+    "install": "cd apps/not-splitwise && pnpm i",
+    "build": "cd apps/not-splitwise && pnpm build",
+    "dev": "cd apps/not-splitwise && pnpm dev",
+    "test": "echo \"no tests\"",
+    "lint": "echo \"no lint\""
+  },
+  "artifact.patterns": ["apps/not-splitwise/dist/**"],
+  "params": {
+    "op.deploy.firebase.hosting": {
+      "working_dir": "apps/not-splitwise",
+      "artifact_path": "apps/not-splitwise/dist",
+      "config_path": "apps/not-splitwise/firebase.json",
+      "node_version": "20"
+    }
+  },
+  "provenance": {
+    "source": "the-choosen-one theme variant",
+    "version": "1.0.0",
+    "date": "2025-10-26",
+    "note": "Firebase Hosting with the-choosen-one design language"
+  },
+  "why": "Keep design/build parity while targeting Firebase Hosting with CI."
+}
+
