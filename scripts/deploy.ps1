@@ -66,6 +66,19 @@ Write-Host "Setting GitHub secrets on $Repo" -ForegroundColor Cyan
 ($Token) | gh secret set FIREBASE_TOKEN -R $Repo -b-
 ($ProjectId) | gh secret set FIREBASE_PROJECT_ID -R $Repo -b-
 
+# Update local .firebaserc default to match project (optional)
+try {
+  $rcPath = Join-Path (Get-Location) ".\apps\not-splitwise\.firebaserc"
+  if (Test-Path $rcPath) {
+    $obj = Get-Content $rcPath -Raw | ConvertFrom-Json
+    if ($obj.projects.default -ne $ProjectId) {
+      $obj.projects.default = $ProjectId
+      ($obj | ConvertTo-Json -Depth 8) | Set-Content -NoNewline $rcPath
+      Write-Host ".firebaserc updated to $ProjectId" -ForegroundColor DarkGreen
+    }
+  }
+} catch { Write-Host "Could not update .firebaserc: $($_.Exception.Message)" -ForegroundColor DarkGray }
+
 Write-Host "Secrets set. Pushing and watching CI..." -ForegroundColor Green
 
 # 4) Push and watch
@@ -79,4 +92,3 @@ try {
 }
 
 Write-Host "Done. Ensure Firebase Hosting shows the deployed site for project: $ProjectId" -ForegroundColor Green
-
