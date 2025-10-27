@@ -567,8 +567,8 @@ function GroupPage() {
                   <ul className="list">
                     {tx.map((t,i)=>(
                       <li key={i} className="row" style={{justifyContent:'space-between'}}>
-                        <div>{memberName(t.from)} â†’ {memberName(t.to)}: â‚¹{t.amount}</div>
-                        <button className="btn" onClick={async()=>{ if (confirm(`Mark settled: ${memberName(t.from)} â†’ ${memberName(t.to)} â‚¹${t.amount}?`)) { try { await addSettlement(groupId, t.from, t.to, t.amount); } catch { alert('Failed to settle'); } } }}>Settle</button>
+                        <div>{memberName(t.from)} -> {memberName(t.to)}: <span className="num">Rs {t.amount}</span></div>
+                        <button className="btn" onClick={async()=>{ if (confirm('Mark settled: ' + memberName(t.from) + ' -> ' + memberName(t.to) + ' Rs ' + t.amount + '?')) { try { await addSettlement(groupId, t.from, t.to, t.amount); } catch { alert('Failed to settle'); } } }}>Settle</button>
                       </li>
                     ))}
                   </ul>
