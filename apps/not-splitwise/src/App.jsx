@@ -17,6 +17,8 @@ import {
   createGroup,
   addUserToGroup,
   addExpense,
+  addSettlement,
+  deleteExpense,
   requestAccess,
   emailKey,
   tokenActive,
@@ -137,6 +139,7 @@ function Header() {
             <>
               <Link className="btn" to="/dashboard">Dashboard</Link>
               {isAdmin(user) && <Link className="btn" to="/admin">Admin</Link>}
+              <Link className="btn" to="/profile">Profile</Link>
             </>
           )}
           {canInstall && <button className="btn" onClick={installApp}>Install App</button>}
@@ -283,7 +286,7 @@ function Dashboard() {
               <li key={g.id} className="row hover-show">
                 <Link className="btn" to={`/group/${g.id}`}>{g.name}</Link>
                 <div style={{display:'flex', alignItems:'center', gap:8}}>
-                  <code>{invite}</code>
+                  <code className="code-inline hide-sm">{invite}</code>
                   <CopyBtn text={invite} label="Copy invite" />
                 </div>
               </li>
@@ -397,6 +400,14 @@ function GroupPage() {
         balances[uid] -= Number(share || 0);
       });
     });
+    // Apply settlements (from pays to to)
+    Object.values(group?.settlements || {}).forEach(s => {
+      const amt = Number(s.amount || 0);
+      if (!balances[s.from]) balances[s.from] = 0;
+      if (!balances[s.to]) balances[s.to] = 0;
+      balances[s.from] += amt;
+      balances[s.to] -= amt;
+    });
     return balances;
   }
 
@@ -423,8 +434,28 @@ function GroupPage() {
     <div className="container">
       <div className="card">
         <h2>{group?.name || 'Group'}</h2>
-        <p className="muted hover-show">Share invite: <code>{shareLink}</code> <CopyBtn text={shareLink} label="Copy invite" /></p>
+        <p className="muted hover-show">Share invite: <code className="code-inline">{shareLink}</code> <CopyBtn text={shareLink} label="Copy invite" /></p>
       </div>
+      {group && (()=>{
+        // Summary cards
+        const expenses = Object.values(group.expenses || {});
+        const total = expenses.reduce((acc,e)=>acc+Number(e.amount||0),0);
+        const paidTotals = {};
+        expenses.forEach(e=>{ paidTotals[e.paidBy]=(paidTotals[e.paidBy]||0)+Number(e.amount||0)});
+        const topUid = Object.keys(paidTotals).sort((a,b)=>(paidTotals[b]-paidTotals[a]))[0];
+        const topSpender = topUid ? { uid: topUid, amount: paidTotals[topUid] } : null;
+        const b = computeBalances();
+        const totalOutstanding = Object.values(b).filter(v=>v>0).reduce((a,c)=>a+c,0) || 0;
+        const you = user?.uid; const youAbs = Math.abs(b[you]||0);
+        const prog = totalOutstanding>0 ? Math.max(0, Math.min(1, 1 - (youAbs/totalOutstanding))) : 1;
+        return (
+          <div className="grid cards">
+            <div className="card"><div className="chip">Total</div><h3>₹{Math.round(total*100)/100}</h3><p className="muted">Total expenses</p></div>
+            <div className="card"><div className="chip">Top spender</div><h3>{topSpender? `${memberName(topSpender.uid)} — ₹${Math.round(topSpender.amount*100)/100}`: '—'}</h3><p className="muted">Most contributed</p></div>
+            <div className="card"><div className="chip">Settle-up progress</div><div className="progress"><div className="bar" style={{width: `${Math.round(prog*100)}%`}}></div></div><p className="muted">Closer to even for you</p></div>
+          </div>
+        );
+      })()}
       <div className="card">
         <h3>Add expense</h3>
         {err && <p className="muted">{err}</p>}
@@ -458,10 +489,15 @@ function GroupPage() {
       </div>
       <div className="card">
         <h3>Expenses</h3>
-        <ul>
-          {Object.entries(group?.expenses || {}).map(([id, exp]) => (
-            <li key={id}>
-              <strong>{exp.title}</strong> — ₹{exp.amount} — paid by {memberName(exp.paidBy)}
+        <ul className="list">
+          {Object.entries(group?.expenses || {}).sort((a,b)=> (a[1].createdAt||0)-(b[1].createdAt||0)).map(([id, exp]) => (
+            <li key={id} className="row" style={{justifyContent:'space-between'}}>
+              <div>
+                <strong>{exp.title}</strong> — ₹{exp.amount} — paid by {memberName(exp.paidBy)}
+              </div>
+              {(isAdmin(user) || exp.paidBy===user?.uid) && (
+                <button className="btn" onClick={async()=>{ if (confirm('Delete this expense?')) { try { await deleteExpense(groupId, id, user?.uid); } catch { alert('Delete failed'); } } }}>Delete</button>
+              )}
             </li>
           ))}
           {!group?.expenses && <p className="muted">No expenses yet.</p>}
@@ -474,16 +510,22 @@ function GroupPage() {
           const tx = settlementSuggestions(b);
           return (
             <div>
-              <ul>
-                {Object.entries(b).map(([uid, val]) => (
-                  <li key={uid}>{memberName(uid)}: {val>=0?'+':''}₹{Math.round(val*100)/100}</li>
-                ))}
+              <ul className="list">
+                {Object.entries(b).map(([uid, val]) => {
+                  const cls = val>=0 ? 'success' : 'danger';
+                  return (<li key={uid}><span className={cls}>{memberName(uid)}: {val>=0?'+':''}₹{Math.round(val*100)/100}</span></li>);
+                })}
               </ul>
               {tx.length>0 && (
                 <>
                   <h4>Suggested settlements</h4>
-                  <ul>
-                    {tx.map((t,i)=>(<li key={i}>{memberName(t.from)} → {memberName(t.to)}: ₹{t.amount}</li>))}
+                  <ul className="list">
+                    {tx.map((t,i)=>(
+                      <li key={i} className="row" style={{justifyContent:'space-between'}}>
+                        <div>{memberName(t.from)} → {memberName(t.to)}: ₹{t.amount}</div>
+                        <button className="btn" onClick={async()=>{ if (confirm(`Mark settled: ${memberName(t.from)} → ${memberName(t.to)} ₹${t.amount}?`)) { try { await addSettlement(groupId, t.from, t.to, t.amount); } catch { alert('Failed to settle'); } } }}>Settle</button>
+                      </li>
+                    ))}
                   </ul>
                 </>
               )}
@@ -491,6 +533,31 @@ function GroupPage() {
           );
         })()}
       </div>
+      {group && (()=>{
+        // Recent transactions (expenses + settlements)
+        const items = [];
+        Object.entries(group.expenses||{}).forEach(([id,e])=>items.push({type:'expense', id, ts:e.createdAt||0, title:e.title, amount:e.amount, by:e.paidBy }));
+        Object.entries(group.settlements||{}).forEach(([id,s])=>items.push({type:'settlement', id, ts:s.createdAt||0, from:s.from, to:s.to, amount:s.amount }));
+        items.sort((a,b)=>b.ts-a.ts);
+        const recent = items.slice(0,8);
+        return (
+          <div className="card">
+            <h3>Recent activity</h3>
+            <ul className="list">
+              {recent.map(it => (
+                <li key={it.id+it.type}>
+                  {it.type==='expense' ? (
+                    <span>Expense: <strong>{it.title}</strong> — ₹{it.amount} by {memberName(it.by)}</span>
+                  ) : (
+                    <span>Settlement: {memberName(it.from)} → {memberName(it.to)} — ₹{it.amount}</span>
+                  )}
+                </li>
+              ))}
+              {recent.length===0 && <li className="muted">No activity yet.</li>}
+            </ul>
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -668,6 +735,34 @@ function Admin() {
   );
 }
 
+function Profile() {
+  const { user } = useAuthCtx();
+  const [upi, setUpi] = useState('');
+  const [ok, setOk] = useState(false);
+  useEffect(() => {
+    if (!user) return;
+    get(ref(db, `userProfiles/${user.uid}/upi`)).then(s=> setUpi(s.exists()? s.val():''));
+  }, [user]);
+  async function save() {
+    if (!user) return;
+    await update(ref(db, `userProfiles/${user.uid}`), { upi });
+    setOk(true); setTimeout(()=>setOk(false), 1200);
+  }
+  return (
+    <div className="container">
+      <div className="card">
+        <h2>Profile</h2>
+        <div className="col">
+          <label>UPI ID</label>
+          <input className="input" placeholder="e.g., user@upi" value={upi} onChange={e=>setUpi(e.target.value)} />
+          <button className="btn" onClick={save}>Save</button>
+          {ok && <span className="success">Saved</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <div className="page">
@@ -681,6 +776,7 @@ export default function App() {
           <Route path="/user-invite" element={<UserInvite />} />
           <Route path="/request-access" element={<RequestAccess />} />
           <Route path="/admin" element={<RequireAdmin><Admin /></RequireAdmin>} />
+          <Route path="/profile" element={<RequireApproved><Profile /></RequireApproved>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <footer className="site-footer">

@@ -72,6 +72,22 @@ export async function createGroup(name, uid) {
 export async function addExpense(groupId, data) {
   const expRef = push(ref(db, `groups/${groupId}/expenses`));
   await set(expRef, data);
+  await set(push(ref(db, `groups/${groupId}/history`)), { type: 'expense_added', createdAt: Date.now(), data });
+}
+
+export async function deleteExpense(groupId, expenseId, who) {
+  const eRef = ref(db, `groups/${groupId}/expenses/${expenseId}`);
+  const snap = await get(eRef);
+  const prev = snap.exists() ? snap.val() : null;
+  await set(eRef, null);
+  await set(push(ref(db, `groups/${groupId}/history`)), { type: 'expense_deleted', createdAt: Date.now(), by: who, data: { id: expenseId, prev } });
+}
+
+export async function addSettlement(groupId, from, to, amount) {
+  const sRef = push(ref(db, `groups/${groupId}/settlements`));
+  const payload = { from, to, amount, createdAt: Date.now() };
+  await set(sRef, payload);
+  await set(push(ref(db, `groups/${groupId}/history`)), { type: 'settlement', createdAt: Date.now(), data: payload });
 }
 
 export async function tokenActive(token) {

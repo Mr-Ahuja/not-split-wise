@@ -35,6 +35,11 @@ header.site .brand { display: inline-flex; align-items: center; gap: 10px; color
 header.site .brand img { width: 28px; height: 28px; display: block; }
 header.site nav { display: flex; align-items: center; gap: 10px; }
 
+/* Helpers */
+.code-inline { display: inline-block; max-width: 60vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+.hide-sm { display: initial; }
+.show-sm { display: none; }
+
 .copy-btn { cursor: pointer; border: none; background: transparent; color: var(--muted); padding: 4px; border-radius: 6px; opacity: .0; transition: opacity .15s ease, color .15s ease; }
 .copy-btn:hover { color: var(--fg); }
 .hover-show:hover .copy-btn { opacity: 1; }
@@ -47,6 +52,18 @@ header.site nav { display: flex; align-items: center; gap: 10px; }
 
 .card { background: rgba(10, 14, 20, 0.35); color: #f5f7fb; border: 1px solid #223042; border-radius: 16px; backdrop-filter: blur(2px); padding: 18px; box-shadow: 0 12px 48px rgba(0, 0, 0, .38); margin: 16px 0; }
 .muted { color: var(--muted); }
+.accent { color: var(--accent); }
+.success { color: #22cc88; }
+.danger { color: #ff6b6b; }
+.warn { color: #ffb84d; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 999px; background: #0f151d; border: 1px solid #1e2733; font-size: 12px; }
+.grid { display: grid; gap: 12px; }
+.grid.cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.progress { height: 8px; background: #223042; border-radius: 999px; overflow: hidden; }
+.progress .bar { height: 100%; background: linear-gradient(90deg, #22cc88, #5cc8ff); width: 0; }
+.list { list-style: none; padding: 0; margin: 0; }
+.list li { padding: 8px 0; border-bottom: 1px solid #223042; }
+.list li:last-child { border-bottom: none; }
 .input { background: #0f151d; color: var(--fg); border: 1px solid #1e2733; border-radius: 10px; padding: 10px 12px; }
 .row { display: flex; gap: 10px; align-items: center; }
 .col { display: flex; flex-direction: column; gap: 8px; }
@@ -56,6 +73,10 @@ header.site nav { display: flex; align-items: center; gap: 10px; }
   .row { flex-direction: column; align-items: stretch; }
   .btn { width: 100%; }
   .copy-btn { opacity: 1; }
+  .code-inline { max-width: 100%; }
+  .hide-sm { display: none; }
+  .show-sm { display: initial; }
+  .grid.cards { grid-template-columns: 1fr; }
 }
 
 /* Footer */
