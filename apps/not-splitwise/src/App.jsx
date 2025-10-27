@@ -512,14 +512,14 @@ function GroupPage() {
             <div>
               <ul className="list">
                 {Object.entries(b).map(([uid, val]) => {
-                  const cls = val>=0 ? (val>0 ? 'success' : '') : 'danger';
+                  const cls = val>0 ? 'success' : val<0 ? 'danger' : 'neutral';
                   const label = uid === user?.uid
-                    ? (val < 0 ? 'You owe' : val > 0 ? "You\'re owed" : 'Even')
-                    : (val < 0 ? 'Owes' : val > 0 ? 'Is owed' : 'Even');
+                    ? (val < 0 ? 'You owe' : val > 0 ? "You\'re owed" : 'Settled')
+                    : (val < 0 ? 'Owes' : val > 0 ? 'Is owed' : 'Settled');
                   return (
                     <li key={uid} className="row" style={{justifyContent:'space-between'}}>
                       <span className={cls}>{memberName(uid)}: {val>=0?'+':''}₹{Math.round(val*100)/100}</span>
-                      <span className={`chip ${val<0?'danger': val>0?'success':''}`}>{label}</span>
+                      <span className={`chip ${val<0?'danger': val>0?'success':'neutral'}`}>{label}</span>
                     </li>
                   );
                 })}
