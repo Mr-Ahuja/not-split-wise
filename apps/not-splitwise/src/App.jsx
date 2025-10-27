@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+﻿import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   auth,
@@ -181,10 +181,10 @@ function Restricted() {
             {err && <p className="muted">{err.message} {err.helpUrl && <a href={err.helpUrl} target="_blank" rel="noreferrer">Open Console</a>}</p>}
           </>
         ) : approved ? (
-          <p>Redirecting…</p>
+          <p>Redirectingâ€¦</p>
         ) : (
           <div className="col">
-            <p>Your account isn’t approved yet.</p>
+            <p>Your account isnâ€™t approved yet.</p>
             <Link className="btn" to="/request-access">Request Access</Link>
           </div>
         )}
@@ -195,7 +195,7 @@ function Restricted() {
 
 function RequireApproved({ children }) {
   const { user, loading, approved } = useAuthCtx();
-  if (loading) return <div className="container"><div className="card">Loading…</div></div>;
+  if (loading) return <div className="container"><div className="card">Loadingâ€¦</div></div>;
   if (!user) return <Navigate to="/" replace />;
   if (isAdmin(user)) return children;
   if (!approved) return <Navigate to="/request-access" replace />;
@@ -204,7 +204,7 @@ function RequireApproved({ children }) {
 
 function RequireAdmin({ children }) {
   const { user, loading } = useAuthCtx();
-  if (loading) return <div className="container"><div className="card">Loading…</div></div>;
+  if (loading) return <div className="container"><div className="card">Loadingâ€¦</div></div>;
   if (!user) return <Navigate to="/" replace />;
   if (!isAdmin(user)) return <Navigate to="/" replace />;
   return children;
@@ -226,7 +226,7 @@ function RequireMember({ children }) {
     return () => unsub();
   }, [user, groupId]);
 
-  if (loading || checking) return <div className="container"><div className="card">Loading…</div></div>;
+  if (loading || checking) return <div className="container"><div className="card">Loadingâ€¦</div></div>;
   if (!user) return <Navigate to="/" replace />;
   if (!(approved || isMember)) return <Navigate to={`/join?groupId=${groupId}`} replace />;
   return children;
@@ -318,6 +318,7 @@ function GroupPage() {
   const [profiles, setProfiles] = useState({});
   const [err, setErr] = useState(null);
   const [lastSeen, setLastSeen] = useState(0);
+  const [category, setCategory] = useState('other');
 
   useEffect(() => {
     const gRef = ref(db, `groups/${groupId}`);
@@ -337,7 +338,7 @@ function GroupPage() {
         Object.entries(val.expenses).forEach(([id, ex]) => {
           const ts = Number(ex.createdAt || 0);
           if (ts > lastSeen && ex.split && ex.split[user.uid] > 0 && ex.paidBy !== user.uid) {
-            const body = `${ex.title} — ₹${ex.amount} (you owe ₹${ex.split[user.uid]})`;
+            const body = `${ex.title} â€” â‚¹${ex.amount} (you owe â‚¹${ex.split[user.uid]})`;
             if (navigator.serviceWorker?.ready) {
               navigator.serviceWorker.ready.then(reg => reg.showNotification('New expense', { body }));
             } else {
@@ -373,9 +374,11 @@ function GroupPage() {
         paidBy: user.uid,
         createdAt: Date.now(),
         split,
+        category,
       });
       setTitle('');
       setAmount('');
+      setCategory('other');
       setErr(null);
     } catch (e) {
       setErr('Failed to add expense. Check DB configuration.');
@@ -386,6 +389,29 @@ function GroupPage() {
 
   function memberName(uid) {
     return profiles[uid]?.name || uid;
+  }
+
+  function categoryIcon(cat) {
+    switch ((cat||'').toLowerCase()) {
+      case 'food':
+      case 'dining':
+        return '🍽️';
+      case 'cab':
+      case 'travel':
+      case 'taxi':
+        return '🚕';
+      case 'movie':
+      case 'entertainment':
+        return '🎬';
+      case 'groceries':
+        return '🛒';
+      case 'rent':
+        return '🏠';
+      case 'utilities':
+        return '💡';
+      default:
+        return '🧾';
+    }
   }
 
   function computeBalances() {
@@ -450,8 +476,8 @@ function GroupPage() {
         const prog = totalOutstanding>0 ? Math.max(0, Math.min(1, 1 - (youAbs/totalOutstanding))) : 1;
         return (
           <div className="grid cards">
-            <div className="card"><div className="chip">Total</div><h3>₹{Math.round(total*100)/100}</h3><p className="muted">Total expenses</p></div>
-            <div className="card"><div className="chip">Top spender</div><h3>{topSpender? `${memberName(topSpender.uid)} — ₹${Math.round(topSpender.amount*100)/100}`: '—'}</h3><p className="muted">Most contributed</p></div>
+            <div className="card"><div className="chip">Total</div><h3>â‚¹{Math.round(total*100)/100}</h3><p className="muted">Total expenses</p></div>
+            <div className="card"><div className="chip">Top spender</div><h3>{topSpender? `${memberName(topSpender.uid)} â€” â‚¹${Math.round(topSpender.amount*100)/100}`: 'â€”'}</h3><p className="muted">Most contributed</p></div>
             <div className="card"><div className="chip">Settle-up progress</div><div className="progress"><div className="bar" style={{width: `${Math.round(prog*100)}%`}}></div></div><p className="muted">Closer to even for you</p></div>
           </div>
         );
@@ -461,7 +487,18 @@ function GroupPage() {
         {err && <p className="muted">{err}</p>}
         <form onSubmit={addNewExpense} className="col">
           <input className="input" placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} />
-          <input className="input" type="number" placeholder="Amount" value={amount} onChange={e => setAmount(e.target.value)} />
+          <input className="input num" type="number" placeholder="Amount" value={amount} onChange={e => setAmount(e.target.value)} />
+          <div className="row">
+            <select className="input" value={category} onChange={e=>setCategory(e.target.value)}>
+              <option value="food">Food</option>
+              <option value="cab">Cab</option>
+              <option value="movie">Movie</option>
+              <option value="groceries">Groceries</option>
+              <option value="rent">Rent</option>
+              <option value="utilities">Utilities</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
           <div className="row">
             <label><input type="radio" name="split" checked={splitMode==='equal'} onChange={()=>setSplitMode('equal')} /> Equal split</label>
             <label><input type="radio" name="split" checked={splitMode==='custom'} onChange={()=>{
@@ -493,7 +530,7 @@ function GroupPage() {
           {Object.entries(group?.expenses || {}).sort((a,b)=> (a[1].createdAt||0)-(b[1].createdAt||0)).map(([id, exp]) => (
             <li key={id} className="row" style={{justifyContent:'space-between'}}>
               <div>
-                <strong>{exp.title}</strong> — ₹{exp.amount} — paid by {memberName(exp.paidBy)}
+                <span title={exp.category || 'other'} style={{marginRight:8}}>{categoryIcon(exp.category)}</span><strong>{exp.title}</strong> - <span className="num">Rs {exp.amount}</span> - paid by {memberName(exp.paidBy)}
               </div>
               {(isAdmin(user) || exp.paidBy===user?.uid) && (
                 <button className="btn" onClick={async()=>{ if (confirm('Delete this expense?')) { try { await deleteExpense(groupId, id, user?.uid); } catch { alert('Delete failed'); } } }}>Delete</button>
@@ -518,7 +555,7 @@ function GroupPage() {
                     : (val < 0 ? 'Owes' : val > 0 ? 'Is owed' : 'Settled');
                   return (
                     <li key={uid} className="row" style={{justifyContent:'space-between'}}>
-                      <span className={cls}>{memberName(uid)}: {val>=0?'+':''}₹{Math.round(val*100)/100}</span>
+                      <span className={cls}>{memberName(uid)}: {val>=0?'+':''}â‚¹{Math.round(val*100)/100}</span>
                       <span className={`chip ${val<0?'danger': val>0?'success':'neutral'}`}>{label}</span>
                     </li>
                   );
@@ -530,8 +567,8 @@ function GroupPage() {
                   <ul className="list">
                     {tx.map((t,i)=>(
                       <li key={i} className="row" style={{justifyContent:'space-between'}}>
-                        <div>{memberName(t.from)} → {memberName(t.to)}: ₹{t.amount}</div>
-                        <button className="btn" onClick={async()=>{ if (confirm(`Mark settled: ${memberName(t.from)} → ${memberName(t.to)} ₹${t.amount}?`)) { try { await addSettlement(groupId, t.from, t.to, t.amount); } catch { alert('Failed to settle'); } } }}>Settle</button>
+                        <div>{memberName(t.from)} â†’ {memberName(t.to)}: â‚¹{t.amount}</div>
+                        <button className="btn" onClick={async()=>{ if (confirm(`Mark settled: ${memberName(t.from)} â†’ ${memberName(t.to)} â‚¹${t.amount}?`)) { try { await addSettlement(groupId, t.from, t.to, t.amount); } catch { alert('Failed to settle'); } } }}>Settle</button>
                       </li>
                     ))}
                   </ul>
@@ -555,9 +592,9 @@ function GroupPage() {
               {recent.map(it => (
                 <li key={it.id+it.type}>
                   {it.type==='expense' ? (
-                    <span>Expense: <strong>{it.title}</strong> — ₹{it.amount} by {memberName(it.by)}</span>
+                    <span>Expense: <strong>{it.title}</strong> â€” â‚¹{it.amount} by {memberName(it.by)}</span>
                   ) : (
-                    <span>Settlement: {memberName(it.from)} → {memberName(it.to)} — ₹{it.amount}</span>
+                    <span>Settlement: {memberName(it.from)} â†’ {memberName(it.to)} â€” â‚¹{it.amount}</span>
                   )}
                 </li>
               ))}
@@ -594,7 +631,7 @@ function Join() {
           <button className="btn mellange" onClick={async ()=>{ try { setErr(null); await signInWithGoogle(); } catch(e){ setErr(parseAuthError(e)); } }}>Sign in to join</button>
           {err && <p className="muted">{err.message} {err.helpUrl && <a href={err.helpUrl} target="_blank" rel="noreferrer">Open Console</a>}</p>}
         </>}
-        {user && <p>Adding you to the group…</p>}
+        {user && <p>Adding you to the groupâ€¦</p>}
       </div>
     </div>
   );
@@ -627,7 +664,7 @@ function UserInvite() {
           <button className="btn mellange" onClick={async ()=>{ try { setErr(null); await signInWithGoogle(); } catch(e){ setErr(parseAuthError(e)); } }}>Sign in to accept invite</button>
           {err && <p className="muted">{err.message} {err.helpUrl && <a href={err.helpUrl} target="_blank" rel="noreferrer">Open Console</a>}</p>}
         </>)}
-        {status === 'checking' && <p>Validating…</p>}
+        {status === 'checking' && <p>Validatingâ€¦</p>}
         {status === 'invalid' && <p>Invalid or revoked invite link.</p>}
       </div>
     </div>
@@ -651,7 +688,7 @@ function RequestAccess() {
         {!user ? (
           <button className="btn mellange" onClick={() => signInWithGoogle()}>Sign in</button>
         ) : sent ? (
-          <p>Request sent. You’ll be notified once approved.</p>
+          <p>Request sent. Youâ€™ll be notified once approved.</p>
         ) : (
           <button className="btn" onClick={submit}>Send Request</button>
         )}
@@ -788,10 +825,9 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <footer className="site-footer">
-          Not Splitwise by The Chosen One - Preetam Ahuja ·
+          Not Splitwise by The Chosen One - Preetam Ahuja Â·
           {' '}<a href="https://preetam.thechosenone.in/" target="_blank" rel="noreferrer">Preetam Ahuja</a>
         </footer>
       </AuthProvider>
     </div>
   );
-}

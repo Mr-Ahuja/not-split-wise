@@ -57,6 +57,7 @@ header.site nav { display: flex; align-items: center; gap: 10px; }
 .danger { color: #ff6b6b; }
 .neutral { color: var(--muted); }
 .warn { color: #ffb84d; }
+.num { font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' 1, 'lnum' 1; font-family: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "DejaVu Sans Mono", "Courier New", monospace; }
 .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 999px; background: #0f151d; border: 1px solid #1e2733; font-size: 12px; }
 .chip.success { border-color: #22cc88; color: #22cc88; }
 .chip.danger { border-color: #ff6b6b; color: #ff6b6b; }
